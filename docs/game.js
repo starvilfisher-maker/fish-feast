@@ -15,21 +15,21 @@
     {name:'金色海马',sprite:1,bonus:1,color:'#ffe18a',speed:92}
   ];
   const species = [
-    {name:'蓝尾鱼',sprite:1,r:12,score:1,speed:42,unlock:0},
-    {name:'粉红鱼',sprite:2,r:18,score:2,speed:51,unlock:0},
-    {name:'小丑鱼',sprite:0,extra:true,r:15,score:2,speed:54,unlock:0},
-    {name:'蝶鱼',sprite:1,extra:true,r:24,score:3,speed:47,unlock:0},
-    {name:'河豚',sprite:2,extra:true,r:30,score:5,speed:35,unlock:0},
-    {name:'蓝纹鱼',sprite:3,r:28,score:4,speed:62,unlock:0},
-    {name:'神仙鱼',sprite:4,extra:true,r:38,score:6,speed:58,unlock:1},
-    {name:'灯笼鱼',sprite:4,r:40,score:8,speed:70,unlock:2},
-    {name:'狮子鱼',sprite:3,extra:true,r:52,score:10,speed:53,unlock:3},
-    {name:'赤鲨',sprite:5,r:55,score:12,speed:77,unlock:3},
-    {name:'赤鲨',sprite:5,r:70,score:18,speed:84,unlock:4},
-    {name:'锤头鲨',sprite:5,extra:true,r:90,score:24,speed:91,unlock:5},
-    {name:'巨型赤鲨',sprite:5,r:110,score:32,speed:82,unlock:5},
-    {name:'巨型锤头鲨',sprite:5,extra:true,r:130,score:45,speed:85,unlock:6},
-    {name:'深海巨鲨',sprite:5,extra:true,r:160,score:65,speed:78,unlock:7}
+    {name:'蓝尾鱼',sprite:1,r:12,score:1,speed:42},
+    {name:'粉红鱼',sprite:2,r:18,score:2,speed:51},
+    {name:'小丑鱼',sprite:0,extra:true,r:15,score:2,speed:54},
+    {name:'蝶鱼',sprite:1,extra:true,r:24,score:3,speed:47},
+    {name:'河豚',sprite:2,extra:true,r:30,score:5,speed:35},
+    {name:'蓝纹鱼',sprite:3,r:28,score:4,speed:62},
+    {name:'神仙鱼',sprite:4,extra:true,r:38,score:6,speed:58},
+    {name:'灯笼鱼',sprite:4,r:40,score:8,speed:70},
+    {name:'狮子鱼',sprite:3,extra:true,r:52,score:10,speed:53},
+    {name:'赤鲨',sprite:5,r:55,score:12,speed:77},
+    {name:'赤鲨',sprite:5,r:70,score:18,speed:84},
+    {name:'锤头鲨',sprite:5,extra:true,r:90,score:24,speed:91},
+    {name:'巨型赤鲨',sprite:5,r:110,score:32,speed:82},
+    {name:'巨型锤头鲨',sprite:5,extra:true,r:130,score:45,speed:85},
+    {name:'深海巨鲨',sprite:5,extra:true,r:160,score:65,speed:78}
   ];
   const makePlayer=(id,x,y)=>({id,x,y,r:sizes[0],dir:id===1?1:-1,score:0,level:0,lives:3,invulnerable:2,shieldTime:0,slowTime:0,dashTime:0,dashCooldown:0,combo:0,comboTime:0,bestCombo:0,pointer:null,outcome:'playing',finishedAt:null});
   let state='ready', W=1100,H=520,last=0,clock=0,elapsed=0,mode='solo';
@@ -56,16 +56,22 @@
   new ResizeObserver(resize).observe(canvas);
   function spawn(initial=false,forced=null){
     const giantCount=fish.filter(f=>f.r>=100).length;
-    const level=oceanLevel(),eligible=species.filter(s=>s.unlock<=level&&(s.r<100||giantCount<(level>=7?3:2)));
-    const prey=eligible.filter(s=>s.r<=Math.min(...activePlayers().map(p=>p.r))*.9);
-    const preyChance=seaEvent()?.kind==='rush'?.22:Math.max(.36,.58-pressure()*.12);
-    const pool=Math.random()<preyChance&&prey.length?prey:eligible;
+    // Fixed size groups keep the ocean independent of either player's growth.
+    const rush=seaEvent()?.kind==='rush',roll=Math.random();
+    const small=roll<(rush?.18:.30),medium=roll<(rush?.43:.60),large=roll<(rush?.86:.90);
+    const giantLimit=W<580?1:2;
+    const pool=species.filter(s=>small?s.r<=18:medium?s.r>18&&s.r<55:large||giantCount>=giantLimit?s.r>=55&&s.r<100:s.r>=100);
     const s=forced||pool[Math.floor(rand(0,pool.length))],dir=Math.random()<.5?1:-1,fr=screenRadius(s.r);
     let x=initial?rand(30,W-30):(dir===1?-fr*3:W+fr*3),y=rand(fr*.82+38,H-fr*.82-20);
     if(initial&&players.some(p=>Math.hypot(x-p.x,y-p.y)<fr+screenRadius(p.r)+100)){x=dir===1?-fr*3:W+fr*3;}
     fish.push({...s,x,y,baseY:y,dir,phase:rand(0,6.28),speed:s.speed*rand(.85,1.3),wobble:rand(3,12),attackCooldown:rand(3,6),windup:0,charge:0});
   }
-  function populate(){fish=[];for(const s of species.filter(s=>s.unlock===0))spawn(true,s);while(fish.length<16)spawn(true);}
+  function populate(){
+    fish=[];
+    for(const s of species.filter(s=>s.r<=18))spawn(true,s);
+    for(const r of [24,38,55,90,110])spawn(true,species.find(s=>s.r===r));
+    while(fish.length<16)spawn(true);
+  }
   function spawnSpecial(typeIndex=Math.random()<.75?0:1){
     const type=specialTypes[typeIndex],dir=Math.random()<.5?1:-1,x=dir===1?-60:W+60,y=rand(75,H-65);
     specials.push({...type,x,y,baseY:y,r:17,dir,phase:rand(0,6.28),wobble:typeIndex===0?14:7});
