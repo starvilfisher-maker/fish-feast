@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#f6f9fb"><meta name="description" content="大鱼吃小鱼：吃掉比自己小的鱼，躲开大鱼，在海底一路成长。支持鼠标、键盘和触控。">
   <title>大鱼吃小鱼 v1.2 · 海底成长记</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230f9eaf'/%3E%3Ctext x='10' y='46' font-size='42'%3E%F0%9F%90%9F%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=1.2.3">
+  <link rel="stylesheet" href="style.css?v=1.2.4">
 </head>
 <body>
 <main class="shell">
@@ -31,12 +31,31 @@
         <button id="touchRight" class="direction-button right" aria-label="向右移动" aria-pressed="false" disabled>→</button>
         <button id="touchDown" class="direction-button down" aria-label="向下移动" aria-pressed="false" disabled>↓</button>
       </div>
-      <button id="controlSwitch" class="control-switch" aria-pressed="false">切换方向键</button>
+      <div class="control-buttons"><button id="controlSwitch" class="control-switch" aria-pressed="false">切换方向键</button><button id="controlSettings" class="control-switch" aria-haspopup="dialog" aria-controls="controlSettingsPanel">操作设置</button></div>
       </div>
       <p id="mobileHint" class="mobile-hint">圆盘可向任意角度游动<br>可同时按冲刺</p>
       <div class="mobile-actions">
         <button id="touchDash" class="touch-dash" aria-label="1P冲刺" disabled><span id="touchDashLabel">冲刺</span><small id="touchCooldown">开始后可用</small></button>
         <button id="wideScreen" class="wide-screen">横屏游玩</button>
+      </div>
+    </div>
+    <div id="controlSettingsPanel" class="control-settings" role="dialog" aria-modal="true" aria-labelledby="controlSettingsTitle" hidden>
+      <div class="control-settings-card">
+        <h2 id="controlSettingsTitle">手机操作设置</h2>
+        <div class="mobile-tuning"><div>
+        <label class="sensitivity-label" for="mobileMoveSpeed">玩家移动速度 <output id="moveSpeedValue" for="mobileMoveSpeed">70%</output></label>
+        <input id="mobileMoveSpeed" type="range" min="30" max="150" step="5" value="70" aria-valuetext="70%">
+        <div class="sensitivity-scale"><span>30% · 慢</span><span>150% · 快</span></div>
+        <p>调节你的鱼游得多快，方向键和拖动也生效。</p>
+        </div><div>
+        <label class="sensitivity-label" for="mobileSensitivity">摇杆灵敏度 <output id="sensitivityValue" for="mobileSensitivity">70%</output></label>
+        <input id="mobileSensitivity" type="range" min="30" max="150" step="5" value="70" aria-valuetext="70%">
+        <div class="sensitivity-scale"><span>30% · 柔和</span><span>150% · 灵敏</span></div>
+        <p>控制轻推时的响应，推满时达到设定移速。</p>
+        </div></div>
+        <div class="stick-side-picker" role="group" aria-label="移动控件位置"><button id="stickLeft" aria-pressed="true">左手摇杆</button><button id="stickRight" aria-pressed="false">右手摇杆</button></div>
+        <p>摇杆 / 方向键与冲刺按钮交换左右位置。</p>
+        <div class="settings-actions"><button id="resetControls">恢复默认</button><button id="closeSettings">完成</button></div>
       </div>
     </div>
     <div class="partner-panel" id="partnerPanel" hidden aria-label="2P玩家状态"><span class="player-tag">2P · 蓝色</span><strong id="levelName2">海底新朋友</strong><span><b id="level2">1</b> 级</span><span>得分 <b id="score2">0</b></span><strong id="lives2" class="partner-lives">♥ ♥ ♥</strong><span id="comboStatus2" class="partner-combo">方向键移动 · Shift冲刺</span><span id="shieldStatus2" hidden>护盾</span><span id="slowStatus2" hidden>减速中</span><button id="dash2" class="dash-button" disabled>2P冲刺 · Shift</button></div>
@@ -48,6 +67,6 @@
   <section class="challenge-guide" aria-label="挑战玩法说明"><div><strong>避开大鱼与尖刺</strong><p>大鱼保持正常游速；标有“鼓起！别碰”的河豚碰到就会受伤。狮子鱼刺伤会短暂减速。</p></div><div><strong>冲刺与连吃</strong><p>1P空格冲刺，2P Shift冲刺（单人也可用Shift），冷却6秒。3秒内接着吃鱼可延续连吃，每5连吃刷新冲刺。</p></div><div><strong>道具与海底事件</strong><p>◇ 护盾光圈可挡一次伤害，持续8秒；每人3条生命，无法补充。每45秒出现急流或猎食潮，持续10秒。</p></div></section>
   <footer><span>v1.2 · 双人独立胜负；一人出局或通关，另一人继续。</span><span>P 暂停 / 继续 <b>·</b> R 重新开始</span></footer>
 </main>
-<script src="game.js?v=1.2.3"></script>
+<script src="game.js?v=1.2.4"></script>
 </body>
 </html>

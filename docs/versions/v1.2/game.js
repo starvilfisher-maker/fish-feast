@@ -50,6 +50,8 @@
   let expanded=false,fullscreenBusy=false,orientationLocked=false;
   let rotated=false,joystickPointer=null,joystickVector={x:0,y:0},controlMode='joystick';
   try{if(window.localStorage?.getItem('fish-feast-control')==='buttons')controlMode='buttons';}catch{}
+  let mobileSensitivity=70,mobileMoveSpeed=70,joystickSide='left',settingsOpen=false,settingsResume=false;
+  try{const saved=JSON.parse(window.localStorage?.getItem('fish-feast-mobile-settings')||'null');if(saved){if(Number.isFinite(saved.sensitivity)&&saved.sensitivity>=30&&saved.sensitivity<=150)mobileSensitivity=Math.round(saved.sensitivity/5)*5;if(Number.isFinite(saved.speed)&&saved.speed>=30&&saved.speed<=150)mobileMoveSpeed=Math.round(saved.speed/5)*5;if(saved.side==='right')joystickSide='right';}}catch{}
   let specials=[],specialClock=0,nextSpecial=25;
   let pickups=[],pickupClock=0,nextPickup=18;
   let sizeScale=1;
@@ -104,7 +106,7 @@
     let speed=f.speed*(active?1+pressure()*.32:1)*(seaEvent()?.kind==='current'?1.2:1);
     f.x+=f.dir*speed*dt;f.y=f.baseY;
   }
-  function dash(p=player){if(state!=='playing'||p.outcome!=='playing'||p.dashCooldown>0)return false;p.dashTime=.7;p.dashCooldown=6;tone(420,.12);return true;}
+  function dash(p=player,mobile=false){if(state!=='playing'||p.outcome!=='playing'||p.dashCooldown>0)return false;p.dashTime=.7;p.dashCooldown=6;p.dashMobile=mobile;tone(420,.12);return true;}
   function spawnPickup(){
     const target=activePlayers()[0]||player,x=target.x<W/2?W*.75:W*.25,y=rand(75,H-70);
     pickups.push({kind:'shield',x,y,baseY:y,r:18,dir:Math.random()<.5?1:-1,phase:rand(0,6.28),life:15});
@@ -148,6 +150,7 @@
     const mobile=window.matchMedia?.('(pointer: coarse), (max-width: 850px), (max-width: 1200px) and (max-height: 600px) and (orientation: landscape)')?.matches??W<580;
     gameShell.setAttribute('data-mode',mode);gameShell.setAttribute('data-state',state);
     gameShell.setAttribute('data-controls',controlMode);
+    gameShell.setAttribute('data-stick-side',joystickSide);
     $('directionPad').hidden=controlMode!=='buttons';$('joystick').hidden=controlMode!=='joystick';
     $('joystick').disabled=state!=='playing'||player.outcome!=='playing';
     $('controlSwitch').textContent=controlMode==='joystick'?'切换方向键':'切换圆盘';
@@ -210,10 +213,12 @@
       const held=key=>keys.has(key)||(p.id===1&&Array.from(touchDirections.values()).includes(key));
       const keyX=(arrows&&held('arrowright')||letters&&held('d')?1:0)-(arrows&&held('arrowleft')||letters&&held('a')?1:0),keyY=(arrows&&held('arrowdown')||letters&&held('s')?1:0)-(arrows&&held('arrowup')||letters&&held('w')?1:0);
       const moveSpeed=(230+p.level*8)*(p.dashTime>0?1.8:1)*(p.slowTime>0?.55:1);
-      if(p.id===1&&Math.hypot(joystickVector.x,joystickVector.y)>0){p.x+=joystickVector.x*moveSpeed*dt;p.y+=joystickVector.y*moveSpeed*dt;p.pointer=null;if(Math.abs(joystickVector.x)>.05)p.dir=joystickVector.x>0?1:-1;}
-      else if(keyX||keyY){const n=Math.hypot(keyX,keyY);p.x+=keyX/n*moveSpeed*dt;p.y+=keyY/n*moveSpeed*dt;p.pointer=null;if(keyX)p.dir=keyX>0?1:-1;}
-      else if(p.pointer){const dist=Math.hypot(p.pointer.x-p.x,p.pointer.y-p.y);if(dist>3){const step=Math.min(dist,moveSpeed*dt);const dx=(p.pointer.x-p.x)/dist;p.x+=dx*step;p.y+=(p.pointer.y-p.y)/dist*step;if(Math.abs(dx)>.05)p.dir=dx>0?1:-1;}}
-      else if(p.dashTime>0)p.x+=p.dir*moveSpeed*dt;
+      const touchSpeed=moveSpeed*mobileMoveSpeed/100;
+      const keyboardMoving=(letters&&['w','a','s','d'].some(key=>keys.has(key)))||(arrows&&['arrowup','arrowdown','arrowleft','arrowright'].some(key=>keys.has(key)));
+      if(p.id===1&&Math.hypot(joystickVector.x,joystickVector.y)>0){p.x+=joystickVector.x*touchSpeed*dt;p.y+=joystickVector.y*touchSpeed*dt;p.pointer=null;if(Math.abs(joystickVector.x)>.05)p.dir=joystickVector.x>0?1:-1;}
+      else if(keyX||keyY){const n=Math.hypot(keyX,keyY),speed=p.id===1&&touchDirections.size&&!keyboardMoving?touchSpeed:moveSpeed;p.x+=keyX/n*speed*dt;p.y+=keyY/n*speed*dt;p.pointer=null;if(keyX)p.dir=keyX>0?1:-1;}
+      else if(p.pointer){const dist=Math.hypot(p.pointer.x-p.x,p.pointer.y-p.y);if(dist>3){const step=Math.min(dist,(p.pointer.touch?touchSpeed:moveSpeed)*dt);const dx=(p.pointer.x-p.x)/dist;p.x+=dx*step;p.y+=(p.pointer.y-p.y)/dist*step;if(Math.abs(dx)>.05)p.dir=dx>0?1:-1;}}
+      else if(p.dashTime>0)p.x+=p.dir*(p.dashMobile?touchSpeed:moveSpeed)*dt;
       const event=seaEvent();if(event?.kind==='current')p.x+=(W<580?26:45)*event.dir*dt;
       confinePlayer(p);
     }
@@ -342,14 +347,28 @@
     button.addEventListener('keyup',e=>{if([' ','Enter'].includes(e.key)){e.preventDefault();e.stopPropagation();release(e);}});
     button.addEventListener('blur',()=>release({}));
   }
-  const mobileDash=()=>{dash(player);ui();};
+  function syncControlSettings(){
+    $('mobileMoveSpeed').value=String(mobileMoveSpeed);$('mobileMoveSpeed').setAttribute('aria-valuetext',mobileMoveSpeed+'%');$('moveSpeedValue').textContent=mobileMoveSpeed+'%';
+    $('mobileSensitivity').value=String(mobileSensitivity);$('mobileSensitivity').setAttribute('aria-valuetext',mobileSensitivity+'%');$('sensitivityValue').textContent=mobileSensitivity+'%';
+    $('stickLeft').setAttribute('aria-pressed',String(joystickSide==='left'));$('stickRight').setAttribute('aria-pressed',String(joystickSide==='right'));gameShell.setAttribute('data-stick-side',joystickSide);
+  }
+  function saveControlSettings(){try{window.localStorage?.setItem('fish-feast-mobile-settings',JSON.stringify({sensitivity:mobileSensitivity,speed:mobileMoveSpeed,side:joystickSide}));}catch{}syncControlSettings();}
+  function closeControlSettings(){if(!settingsOpen)return;settingsOpen=false;$('controlSettingsPanel').hidden=true;document.body?.classList.remove('controls-open');clearInput();if(settingsResume&&state==='paused')pause();settingsResume=false;$('controlSettings').focus({preventScroll:true});}
+  $('controlSettings').addEventListener('click',()=>{if(settingsOpen)return;settingsResume=state==='playing';if(settingsResume)pause();clearInput();settingsOpen=true;$('controlSettingsPanel').hidden=false;document.body?.classList.add('controls-open');syncControlSettings();$('mobileMoveSpeed').focus({preventScroll:true});});
+  $('mobileMoveSpeed').addEventListener('input',e=>{const value=Number(e.target.value);if(Number.isFinite(value)){mobileMoveSpeed=Math.round(clamp(value,30,150)/5)*5;clearInput();saveControlSettings();}});
+  $('mobileSensitivity').addEventListener('input',e=>{const value=Number(e.target.value);if(Number.isFinite(value)){mobileSensitivity=Math.round(clamp(value,30,150)/5)*5;clearInput();saveControlSettings();}});
+  for(const [id,side] of [['stickLeft','left'],['stickRight','right']])$(id).addEventListener('click',()=>{clearInput();joystickSide=side;saveControlSettings();});
+  $('resetControls').addEventListener('click',()=>{clearInput();mobileSensitivity=70;mobileMoveSpeed=70;joystickSide='left';saveControlSettings();});
+  $('closeSettings').addEventListener('click',closeControlSettings);
+  $('controlSettingsPanel').addEventListener('keydown',e=>{if(e.key!=='Tab')return;const first=$('mobileMoveSpeed'),last=$('closeSettings');if(e.shiftKey&&e.target===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&e.target===last){e.preventDefault();first.focus();}});
+  const mobileDash=()=>{dash(player,true);ui();};
   $('controlSwitch').addEventListener('click',()=>{clearInput();controlMode=controlMode==='joystick'?'buttons':'joystick';try{window.localStorage?.setItem('fish-feast-control',controlMode);}catch{}ui();});
   function moveJoystick(e){
     const box=$('joystick').getBoundingClientRect();let dx=e.clientX-box.left-box.width/2,dy=e.clientY-box.top-box.height/2;
     if(rotated)[dx,dy]=[dy,-dx];
-    const radius=Math.min(box.width,box.height)*.32,distance=Math.hypot(dx,dy),magnitude=Math.min(1,distance/radius);
+    const radius=Math.min(box.width,box.height)*.32,distance=Math.hypot(dx,dy),deflection=Math.min(1,distance/radius),magnitude=Math.pow(deflection,100/mobileSensitivity);
     joystickVector=distance<6?{x:0,y:0}:{x:dx/distance*magnitude,y:dy/distance*magnitude};
-    $('joystickKnob').style.transform=`translate(${joystickVector.x*radius}px,${joystickVector.y*radius}px)`;
+    const knobScale=distance<6?0:deflection*radius/distance;$('joystickKnob').style.transform=`translate(${dx*knobScale}px,${dy*knobScale}px)`;
   }
   $('joystick').addEventListener('pointerdown',e=>{if(state!=='playing'||player.outcome!=='playing'||joystickPointer!==null||e.button>0)return;e.preventDefault();clearTouch();joystickPointer=e.pointerId;player.pointer=null;dragging=false;$('joystick').setPointerCapture(e.pointerId);moveJoystick(e);});
   $('joystick').addEventListener('pointermove',e=>{if(e.pointerId===joystickPointer){e.preventDefault();moveJoystick(e);}});
@@ -365,11 +384,11 @@
   $('soloMode').addEventListener('click',()=>setMode('solo'));$('duoMode').addEventListener('click',()=>setMode('duo'));
   $('dash2').addEventListener('click',()=>{if(players[1])dash(players[1]);canvas.focus({preventScroll:true});ui();});
   $('sound').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('sound').innerHTML=soundEnabled?'♫':'♫<span class="off-mark">/</span>';$('sound').setAttribute('aria-label',soundEnabled?'关闭音效':'开启音效');$('sound').title=soundEnabled?'关闭音效':'开启音效';tone(660);});
-  function point(e){const b=canvas.getBoundingClientRect();return rotated?{x:e.clientY-b.top,y:b.right-e.clientX}:{x:e.clientX-b.left,y:e.clientY-b.top};}
+  function point(e){const b=canvas.getBoundingClientRect();return {...(rotated?{x:e.clientY-b.top,y:b.right-e.clientX}:{x:e.clientX-b.left,y:e.clientY-b.top}),touch:e.pointerType==='touch'||e.pointerType==='pen'};}
   canvas.addEventListener('pointermove',e=>{if(state==='playing'&&player.outcome==='playing'&&(e.pointerType==='mouse'||dragging))player.pointer=point(e);});
   canvas.addEventListener('pointerdown',e=>{if(state==='playing'&&player.outcome==='playing'){clearTouch();dragging=true;player.pointer=point(e);canvas.setPointerCapture(e.pointerId);}});
   canvas.addEventListener('pointerup',e=>{dragging=false;if(e.pointerType!=='mouse')player.pointer=null;});canvas.addEventListener('pointercancel',()=>{dragging=false;player.pointer=null;});canvas.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')player.pointer=null;});
-  window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){if(state==='playing'){e.preventDefault();keys.add(k);}}if(!e.repeat){if(k==='p'||k==='escape')pause();if(k==='r'&&state!=='ready')start();if((k===' '||k==='shift')&&state==='playing'){e.preventDefault();dash(k==='shift'&&mode==='duo'?players[1]:player);ui();}else if((k==='enter'||k===' ')&&e.target===canvas){e.preventDefault();if(state==='paused')pause();else if(state!=='playing')start();}}});
+  window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(settingsOpen){if(k==='escape'){e.preventDefault();closeControlSettings();}return;}if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){if(state==='playing'){e.preventDefault();keys.add(k);}}if(!e.repeat){if(k==='p'||k==='escape')pause();if(k==='r'&&state!=='ready')start();if((k===' '||k==='shift')&&state==='playing'){e.preventDefault();dash(k==='shift'&&mode==='duo'?players[1]:player);ui();}else if((k==='enter'||k===' ')&&e.target===canvas){e.preventDefault();if(state==='paused')pause();else if(state!=='playing')start();}}});
   window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{clearInput();if(state==='playing')pause();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='playing')pause();});
-  resize();populate();ui();requestAnimationFrame(frame);
+  syncControlSettings();resize();populate();ui();requestAnimationFrame(frame);
 })();

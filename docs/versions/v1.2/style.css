@@ -9,6 +9,23 @@
 /* v1.2: thumb controls stay outside the ocean, with a landscape game layout. */
 .mobile-controls{display:none;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:#edf7f7;border-top:1px solid #dcebed;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
 .steering-control{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none}
+.control-buttons{display:flex;gap:4px}.control-buttons .control-switch{padding:6px;font-size:11px}
+.game-shell{position:relative}
+.mobile-controls>.steering-control{order:0}.mobile-controls>.mobile-hint{order:1}.mobile-controls>.mobile-actions{order:2}
+[data-stick-side="right"] .mobile-controls>.steering-control{order:2}[data-stick-side="right"] .mobile-controls>.mobile-actions{order:0}
+.control-settings{position:fixed;inset:0;z-index:130;display:grid;place-items:center;padding:12px;background:#123e5acf;overflow:auto;touch-action:pan-y}
+body.controls-open{overflow:hidden}
+.control-settings[hidden]{display:none}
+.control-settings-card{width:min(520px,100%);max-height:100%;overflow:auto;min-height:0;padding:20px;border-radius:18px;background:#f8fdfc;box-shadow:0 12px 36px #06324b44;color:#244b5a}
+.control-settings-card h2{font-size:20px;margin:0 0 16px}.sensitivity-label{display:flex;justify-content:space-between;font-size:14px;font-weight:700}
+.sensitivity-label output{color:#16877e;font-variant-numeric:tabular-nums}
+#mobileSensitivity,#mobileMoveSpeed{display:block;width:100%;min-height:44px;margin:6px 0 0;accent-color:#219b8d;touch-action:pan-y;cursor:pointer}
+.sensitivity-scale{display:flex;justify-content:space-between;font-size:11px;color:#72949b}
+.control-settings-card p{font-size:12px;color:#72909b;line-height:1.6;margin:8px 0 14px}
+.stick-side-picker,.settings-actions{display:flex;gap:8px}
+.control-settings-card button{flex:1;min-height:44px;padding:8px;border:1px solid #b6d6db;border-radius:10px;background:white;color:#3e7486;font-size:13px;font-weight:700}
+.stick-side-picker button[aria-pressed="true"]{color:#176e63;background:#d4efe9;border-color:#309c8c}
+.settings-actions #closeSettings{background:#edb746;border-color:#dbab4b;color:#56401c}
 .d-pad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px;flex:none}
 .d-pad[hidden],.joystick[hidden]{display:none}
 .joystick{position:relative;width:110px;height:110px;border:2px solid #b4d8dd;border-radius:50%;background:radial-gradient(circle,#eefaf8 20%,#d9eeed 68%,#edf8f7 70%);touch-action:none;padding:0;overflow:hidden}
@@ -59,6 +76,7 @@ body.game-focused{overflow:hidden}
   .primary{min-height:40px;padding:8px 14px;font-size:14px}
 }
 @media(orientation:landscape) and (max-height:600px) and (max-width:1200px){
+  .mobile-tuning{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
   .shell{padding:6px max(6px,env(safe-area-inset-right)) 6px max(6px,env(safe-area-inset-left))}
   .page-header,.guide,.challenge-guide,footer{display:none}
   .game-shell,.game-shell.is-expanded,.game-shell:fullscreen{display:grid;grid-template-columns:148px minmax(0,1fr) 104px;grid-template-rows:44px minmax(0,1fr) 28px 24px;height:calc(100svh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:220px;padding:0;border-radius:12px;gap:0}
@@ -73,6 +91,8 @@ body.game-focused{overflow:hidden}
   .playfield,.is-expanded .playfield,.game-shell:fullscreen .playfield{grid-column:2;grid-row:2;height:auto;min-height:0;border-radius:10px}
   .mobile-controls,.is-expanded .mobile-controls,.game-shell:fullscreen .mobile-controls{display:contents}
   .steering-control{grid-column:1;grid-row:2;align-self:center;justify-self:center}.mobile-actions{grid-column:3;grid-row:2;align-self:center;justify-self:center}
+  .game-shell[data-stick-side="right"]{grid-template-columns:104px minmax(0,1fr) 148px}
+  [data-stick-side="right"] .steering-control{grid-column:3}[data-stick-side="right"] .mobile-actions{grid-column:1}
   .mobile-hint{display:none}.touch-dash{width:78px;height:78px}.wide-screen{min-width:92px}
   .adventure-bar{grid-column:1/-1;grid-row:3;min-height:28px;height:28px;flex-wrap:nowrap;padding:3px 10px;font-size:11px;border:0}
   .event-chip{padding:2px 7px;font-size:10px;min-height:20px;line-height:16px}.combo-status{display:block;order:0;flex-basis:auto;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.status-effects{font-size:10px}
@@ -113,6 +133,9 @@ body.game-focused{overflow:hidden}
 .is-rotated .mobile-controls,.is-rotated .mobile-controls,.is-rotated:fullscreen .mobile-controls{display:contents}
 .is-rotated .steering-control{grid-column:1;grid-row:2;align-self:center;justify-self:center}
 .is-rotated .mobile-actions{grid-column:3;grid-row:2;align-self:center;justify-self:center}
+.is-rotated .mobile-tuning{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.is-rotated[data-stick-side="right"]{grid-template-columns:104px minmax(0,1fr) 148px}
+.is-rotated[data-stick-side="right"] .steering-control{grid-column:3}.is-rotated[data-stick-side="right"] .mobile-actions{grid-column:1}
 .is-rotated .mobile-hint{display:none}
 .is-rotated .touch-dash{width:78px;height:78px}
 .is-rotated .wide-screen{min-width:92px}

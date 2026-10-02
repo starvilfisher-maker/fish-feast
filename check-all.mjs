@@ -1,5 +1,5 @@
 import {spawnSync} from 'node:child_process';
-for(const args of [['--check','docs/game.js'],['check-assets.mjs'],['check-spawns.mjs'],['check-mobile.mjs'],['check-lanes.mjs'],['check-challenge.mjs'],['check-duo.mjs'],['check-independent.mjs'],['check-review.mjs'],['check-soak.mjs']]){
+for(const args of [['--check','docs/game.js'],['check-assets.mjs'],['check-spawns.mjs'],['check-mobile.mjs'],['check-control-settings.mjs'],['check-lanes.mjs'],['check-challenge.mjs'],['check-duo.mjs'],['check-independent.mjs'],['check-review.mjs'],['check-soak.mjs']]){
   const result=spawnSync(process.execPath,args,{stdio:'inherit'});
   if(result.error)throw result.error;
   if(result.status!==0)process.exit(result.status??1);

@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import {t,events,viewport,elements,browserEnv,textCalls} from './check-game.mjs';
 const {document,window}=browserEnv;
+assert.equal(elements.get('mobileSensitivity').value,'70','Mobile controls start with gentler default sensitivity');
+events['mobileSensitivity:input']({target:{value:'100'}});
+events['mobileMoveSpeed:input']({target:{value:'100'}});
 const pointer=id=>({pointerId:id,button:0,preventDefault(){}});
 const down=(key,id)=>events[key+':pointerdown'](pointer(id));
 const up=(key,id)=>events[key+':pointerup'](pointer(id));
