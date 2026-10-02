@@ -29,7 +29,7 @@ for(const mode of ['solo','duo'])for(const seed of [7,42,2026]){
     const g=t.get();assert.ok(g.fish.length<=34&&g.specials.length<=1&&g.pickups.length<=1);maxFish=Math.max(maxFish,g.fish.length);maxParticles=Math.max(maxParticles,g.particles.length);maxPopups=Math.max(maxPopups,g.popups.length);
     assert.ok(g.particles.length<800&&g.popups.length<80,'Effects stay bounded over repeated rounds');
     for(const p of g.players){for(const key of ['x','y','r','score','level','lives','shieldTime','dashCooldown'])assert.ok(Number.isFinite(p[key]),'Player state remains finite');assert.ok(p.lives>=0&&p.lives<=3&&p.level>=0&&p.level<10&&p.r>=20&&p.r<=180);const r=p.r*g.sizeScale;assert.ok(p.x>=r*1.2-.001&&p.x<=g.W-r*1.2+.001&&p.y>=r*.8+10-.001&&p.y<=g.H-r*.8-8+.001,'Both player bodies stay within the resized field');}
-    for(const f of [...g.fish,...g.specials,...g.pickups])for(const key of ['x','y','baseY'])assert.ok(Number.isFinite(f[key]),'Swimming and charge positions stay finite');
+    for(const f of [...g.fish,...g.specials,...g.pickups])for(const key of ['x','y','baseY'])assert.ok(Number.isFinite(f[key]),'Swimming positions stay finite');
   }
 }
 console.log(JSON.stringify({status:'PASS',simulatedMinutes:frames/60/60,frames,spriteDraws:draws,restartedRounds:rounds,maxFish,maxParticles,maxPopups,seeds:3,modes:2}));

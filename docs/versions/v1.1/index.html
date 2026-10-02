@@ -1,48 +1,34 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f9fb"><meta name="description" content="大鱼吃小鱼：吃掉比自己小的鱼，躲开大鱼，在海底一路成长。支持鼠标、键盘和触控。">
-  <title>大鱼吃小鱼 v1.2 · 海底成长记</title>
+  <title>大鱼吃小鱼 v1.1 · 海底成长记</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230f9eaf'/%3E%3Ctext x='10' y='46' font-size='42'%3E%F0%9F%90%9F%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css?v=1.1">
 </head>
 <body>
 <main class="shell">
-  <header class="page-header"><a class="brand" href="./" aria-label="大鱼吃小鱼首页"><span class="brand-mark">🐟</span><span>大鱼吃小鱼<small>海底成长记</small></span></a><span class="edition">v1.2 · 11 种鱼类 · 单人 / 双人游玩</span></header>
-  <section id="gameShell" class="game-shell" aria-label="大鱼吃小鱼游戏">
+  <header class="page-header"><a class="brand" href="./" aria-label="大鱼吃小鱼首页"><span class="brand-mark">🐟</span><span>大鱼吃小鱼<small>海底成长记</small></span></a><span class="edition">v1.1 · 11 种鱼类 · 单人 / 双人游玩</span></header>
+  <section class="game-shell" aria-label="大鱼吃小鱼游戏">
     <div class="toolbar"><div class="level-block"><span class="level-badge" id="level">1</span><div><strong id="levelName">海底新朋友</strong><span class="level-caption">成长等级</span></div></div><div class="stats"><div><span class="stat-label">得分</span><strong id="score">0</strong></div><div><span class="stat-label">时间</span><strong id="time">00:00</strong></div><div class="life-stat"><span class="stat-label">生命</span><strong id="lives" aria-label="剩余3条生命">♥ ♥ ♥</strong></div></div><div class="tools"><button class="icon-button" id="sound" aria-label="开启音效" title="开启音效">♫<span class="off-mark">/</span></button><button class="icon-button" id="pause" aria-label="暂停游戏" title="暂停游戏（P）" disabled>Ⅱ</button></div></div>
     <div class="adventure-bar" aria-label="航行状态和冲刺"><span id="eventStatus" class="event-chip">平静海域</span><span id="comboStatus" class="combo-status">连吃5条鱼可刷新冲刺</span><div class="status-effects"><span id="shieldStatus" hidden>护盾</span><span id="slowStatus" hidden>减速中</span></div><button id="dash" class="dash-button" disabled title="空格或Shift冲刺，冷却6秒">冲刺 · 空格</button></div>
     <div class="playfield" id="playfield">
       <canvas id="ocean" tabindex="0" aria-label="游戏区域。移动鼠标、方向键或WASD控制小鱼。P暂停。"></canvas>
       <div class="ocean-label"><span class="tiny-wave">≈</span> 浅海 · 第一段旅程</div>
       <div id="toast" class="toast" role="status"></div>
-      <div class="overlay" id="overlay"><div class="start-card"><span class="eyebrow" id="overlayEyebrow">准备好探索海底了吗？</span><h1 id="overlayTitle">从小鱼，<br>到海洋之王。</h1><p id="overlayText">吃掉比你小的鱼，躲开比你大的鱼。<br>每一口，都是成长。</p><div id="modePicker" class="mode-picker" role="group" aria-label="选择游戏人数"><button id="soloMode" aria-pressed="true">单人冒险</button><button id="duoMode" aria-pressed="false">双人游玩</button></div><p class="mode-help" id="modeHelp">鼠标、键盘 / 手机方向按钮或拖动</p><button class="primary" id="start">开始游玩 <span>▷</span></button><span class="start-note" id="startNote">吃小鱼长大，目标10级</span></div></div>
+      <div class="overlay" id="overlay"><div class="start-card"><span class="eyebrow" id="overlayEyebrow">准备好探索海底了吗？</span><h1 id="overlayTitle">从小鱼，<br>到海洋之王。</h1><p id="overlayText">吃掉比你小的鱼，躲开比你大的鱼。<br>每一口，都是成长。</p><div id="modePicker" class="mode-picker" role="group" aria-label="选择游戏人数"><button id="soloMode" aria-pressed="true">单人冒险</button><button id="duoMode" aria-pressed="false">双人游玩</button></div><p class="mode-help" id="modeHelp">鼠标、方向键 / WASD 或手机触控</p><button class="primary" id="start">开始游玩 <span>▷</span></button><span class="start-note" id="startNote">吃小鱼长大，目标10级</span></div></div>
       <button class="touch-pause" id="touchPause" aria-label="暂停游戏" hidden>Ⅱ</button>
       <div class="field-hint" id="fieldHint">你是金色的小鱼 <span>◆</span></div>
-    </div>
-    <div class="mobile-controls" id="mobileControls" aria-label="手机游戏操作">
-      <div class="d-pad" role="group" aria-label="1P移动方向">
-        <button id="touchUp" class="direction-button up" aria-label="向上移动" aria-pressed="false" disabled>↑</button>
-        <button id="touchLeft" class="direction-button left" aria-label="向左移动" aria-pressed="false" disabled>←</button>
-        <span class="d-pad-center" aria-hidden="true">🐟</span>
-        <button id="touchRight" class="direction-button right" aria-label="向右移动" aria-pressed="false" disabled>→</button>
-        <button id="touchDown" class="direction-button down" aria-label="向下移动" aria-pressed="false" disabled>↓</button>
-      </div>
-      <p class="mobile-hint">按住方向游动<br>可同时按冲刺</p>
-      <div class="mobile-actions">
-        <button id="touchDash" class="touch-dash" aria-label="1P冲刺" disabled><span id="touchDashLabel">冲刺</span><small id="touchCooldown">开始后可用</small></button>
-        <button id="wideScreen" class="wide-screen">横屏游玩</button>
-      </div>
     </div>
     <div class="partner-panel" id="partnerPanel" hidden aria-label="2P玩家状态"><span class="player-tag">2P · 蓝色</span><strong id="levelName2">海底新朋友</strong><span><b id="level2">1</b> 级</span><span>得分 <b id="score2">0</b></span><strong id="lives2" class="partner-lives">♥ ♥ ♥</strong><span id="comboStatus2" class="partner-combo">方向键移动 · Shift冲刺</span><span id="shieldStatus2" hidden>护盾</span><span id="slowStatus2" hidden>减速中</span><button id="dash2" class="dash-button" disabled>2P冲刺 · Shift</button></div>
     <div class="growth-row"><span id="growthLabel">下一次成长</span><div class="growth-track" role="progressbar" aria-label="1P成长进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="growth"><i id="growthFill"></i></div><strong id="growthText">0 / 32</strong><span class="target" id="growthTarget">目标：成为 10 级海洋之王</span></div>
     <div class="growth-row partner-growth" id="partnerGrowth" hidden><span>2P 下一次成长</span><div class="growth-track" role="progressbar" aria-label="2P成长进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="growth2"><i id="growthFill2"></i></div><strong id="growthText2">0 / 32</strong><span class="target">独立成长，独立胜负</span></div>
     <div class="special-guide" aria-label="特殊生物说明"><div class="special-heading"><strong>追上稀有生物</strong><span>它们会穿过海域，游走就错过了</span></div><div class="special-info"><span class="creature-avatar jelly" role="img" aria-label="星光水母"></span><div><strong>星光水母 <b>+65%</b></strong><span>不受体型限制 · 加速成长</span></div></div><div class="special-info"><span class="creature-avatar seahorse" role="img" aria-label="金色海马"></span><div><strong>金色海马 <b>+100%</b></strong><span>不受体型限制 · 加速成长</span></div></div></div>
   </section>
-  <section class="guide" aria-label="游戏说明"><div class="guide-intro"><span class="guide-number">01 — 玩法</span><h2>海底生存小贴士</h2><p>先吃小鱼，再挑战更大的世界。</p></div><div class="guide-item"><span class="guide-icon mint">↔</span><div><h3>自由游动</h3><p>手机：方向按钮或拖动，支持横屏<br>双人：WASD 与方向键分别控制</p></div></div><div class="guide-item"><span class="guide-icon gold">＋</span><div><h3>比你小？开饭！</h3><p>体型明显比你小的鱼可以吃<br>累计得分，升级长大</p></div></div><div class="guide-item"><span class="guide-icon rose">!</span><div><h3>比你大？快溜！</h3><p>开局就有大鱼与鲨鱼<br>先躲开威胁，再寻找食物</p></div></div></section>
-  <section class="challenge-guide" aria-label="挑战玩法说明"><div><strong>避开大鱼与尖刺</strong><p>大鱼保持正常游速；标有“鼓起！别碰”的河豚碰到就会受伤。狮子鱼刺伤会短暂减速。</p></div><div><strong>冲刺与连吃</strong><p>1P空格冲刺，2P Shift冲刺（单人也可用Shift），冷却6秒。3秒内接着吃鱼可延续连吃，每5连吃刷新冲刺。</p></div><div><strong>道具与海底事件</strong><p>◇ 护盾光圈可挡一次伤害，持续8秒；每人3条生命，无法补充。每45秒出现急流或猎食潮，持续10秒。</p></div></section>
-  <footer><span>v1.2 · 双人独立胜负；一人出局或通关，另一人继续。</span><span>P 暂停 / 继续 <b>·</b> R 重新开始</span></footer>
+  <section class="guide" aria-label="游戏说明"><div class="guide-intro"><span class="guide-number">01 — 玩法</span><h2>海底生存小贴士</h2><p>先吃小鱼，再挑战更大的世界。</p></div><div class="guide-item"><span class="guide-icon mint">↔</span><div><h3>自由游动</h3><p>单人：鼠标 / 键盘 / 触控<br>双人：WASD 与方向键分别控制</p></div></div><div class="guide-item"><span class="guide-icon gold">＋</span><div><h3>比你小？开饭！</h3><p>体型明显比你小的鱼可以吃<br>累计得分，升级长大</p></div></div><div class="guide-item"><span class="guide-icon rose">!</span><div><h3>比你大？快溜！</h3><p>开局就有大鱼与鲨鱼<br>先躲开威胁，再寻找食物</p></div></div></section>
+  <section class="challenge-guide" aria-label="挑战玩法说明"><div><strong>预警出现，准备躲闪</strong><p>捕食者蓄力后会冲锋；标有“鼓起！别碰”的河豚碰到就会受伤。狮子鱼刺伤会短暂减速。</p></div><div><strong>冲刺与连吃</strong><p>1P空格冲刺，2P Shift冲刺（单人也可用Shift），冷却6秒。3秒内接着吃鱼可延续连吃，每5连吃刷新冲刺。</p></div><div><strong>道具与海底事件</strong><p>◇ 护盾光圈可挡一次伤害，持续8秒；每人3条生命，无法补充。每45秒出现急流或猎食潮，持续10秒。</p></div></section>
+  <footer><span>v1.1 · 双人独立胜负；一人出局或通关，另一人继续。</span><span>P 暂停 / 继续 <b>·</b> R 重新开始</span></footer>
 </main>
 <script src="game.js?v=1.1"></script>
 </body>

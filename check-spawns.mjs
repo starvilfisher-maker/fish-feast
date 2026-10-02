@@ -43,5 +43,5 @@ for(const width of [1100,350])for(const mode of ['solo','duo'])for(const seed of
   assert.ok(t.get().fish.filter(f=>f.r>=100).length<=limit,'Giant count is limited independently of level');
 }
 setRandom(Math.random);
-console.log(JSON.stringify({status:'PASS',version:'v1.1',spawnRates:rates}));
+console.log(JSON.stringify({status:'PASS',version:'v1.2',spawnRates:rates}));
 console.log('PASS: fixed size distribution, early large fish, all sizes at level one, opening safety, small prey, giant caps, duo independence and hunting tides.');

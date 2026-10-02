@@ -6,9 +6,12 @@ const viewport={width:1100,height:520};
 const drawCalls=[];
 const textCalls=[];
 const ctx=new Proxy({},{get:(target,key)=>key==='createLinearGradient'?()=>({addColorStop(){}}):key==='ellipse'? (...args)=>drawCalls.push({kind:'ellipse',args}):key==='fillText'? (...args)=>textCalls.push(args):Reflect.get(target,key)||(()=>{})});
-function element(id){if(!elements.has(id))elements.set(id,{textContent:'',innerHTML:'',hidden:false,style:{},classList:{add(){},remove(){},toggle(){}},setAttribute(){},setPointerCapture(){},addEventListener(type,fn){events[id+':'+type]=fn;},getBoundingClientRect(){return {...viewport,left:0,top:0};},focus(){},getContext(){return ctx;}});return elements.get(id);}
+function element(id){if(!elements.has(id)){const classes=new Set(),attributes=new Map();elements.set(id,{textContent:'',innerHTML:'',hidden:false,style:{},classList:{add(...items){items.forEach(x=>classes.add(x));},remove(...items){items.forEach(x=>classes.delete(x));},contains(x){return classes.has(x);},toggle(x,value=!classes.has(x)){value?classes.add(x):classes.delete(x);return value;}},setAttribute(key,value){attributes.set(key,String(value));},getAttribute(key){return attributes.get(key);},setPointerCapture(){},addEventListener(type,fn){events[id+':'+type]=fn;},getBoundingClientRect(){return {...viewport,left:0,top:0};},focus(){},getContext(){return ctx;}});}return elements.get(id);}
 const sandbox={document:{getElementById:element,querySelector:()=>element('label'),addEventListener(){}},window:{devicePixelRatio:1,addEventListener(type,fn){events[type]=fn;}},Image:class{},ResizeObserver:class{observe(){}},requestAnimationFrame(){},setTimeout(){return 0;},clearTimeout(){},console};
 sandbox.Math=Object.create(Math);
+sandbox.document.body=element('body');
+sandbox.document.addEventListener=(type,fn)=>{events['document:'+type]=fn;};
+const browserEnv={document:sandbox.document,window:sandbox.window};
 const setRandom=fn=>{sandbox.Math.random=fn;};
 vm.createContext(sandbox);
 let source=fs.readFileSync('docs/game.js','utf8');
@@ -40,4 +43,4 @@ t.start();assert.ok(t.get().fish.filter(f=>f.r>=55).length>=3,'Every opening inc
 t.start();t.eat({score:1010,x:0,y:0});t.clearFish();for(let i=0;i<64;i++)t.spawn(true);assert.ok(t.get().fish.filter(f=>f.r>=100).length<=3,'At most three giant sharks appear at high levels');t.setFish(160);t.update(.01);assert.equal(t.get().lives,2,'A giant shark threatens a smaller high-level player');
 viewport.width=350;viewport.height=470;t.resize();t.start();t.eat({score:1890,x:0,y:0});t.get().player.x=-100;t.get().player.y=1000;t.confinePlayer();const mobile=t.get(),radius=t.screenRadius(mobile.player.r);assert.ok(mobile.player.x>=radius*1.2&&mobile.player.x<=mobile.W-radius*1.2);assert.ok(radius*2.8<=mobile.W-24,'High-level fish fit the mobile viewport');t.setFish(160);const before=t.get().score;t.update(.01);assert.equal(t.get().score,before+1,'A sufficiently grown player can eat the largest shark with scaled collisions');assert.equal(t.get().state,'playing');
 console.log('PASS: ten levels, six new sprites, large fish from the opening, side-to-side special swimming, bonus and pause/restart regression, mobile size and collision consistency.');
-export {t,events,viewport,drawCalls,textCalls,elements,setRandom};
+export {t,events,viewport,drawCalls,textCalls,elements,setRandom,browserEnv};
