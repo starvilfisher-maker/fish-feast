@@ -1,0 +1,1 @@
+{"name":"fish-feast","private":true,"version":"1.0.0","scripts":{"start":"node server.mjs","check":"node check-all.mjs"}}
