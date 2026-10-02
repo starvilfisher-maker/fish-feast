@@ -3,9 +3,19 @@
   const $ = id => document.getElementById(id);
   const canvas = $('ocean'), ctx = canvas.getContext('2d'), gameShell=$('gameShell');
   const fullscreenTarget=document.documentElement||gameShell;
-  const atlas = new Image(); atlas.src = 'fish-atlas.png';
-  const specialAtlas = new Image(); specialAtlas.src = 'special-atlas.png';
-  const extraAtlas = new Image(); extraAtlas.src = 'more-fish-atlas.png';
+  // Prefer small, transparent WebP atlases; keep PNG for older browsers and retry once.
+  function loadAtlas(name){
+    const resource={image:null};
+    const sources=[`${name}.webp?v=1.2.3`,`${name}.png`,`${name}.png?v=1.2.3&retry=1`];
+    function attempt(index){
+      const image=new Image();image.decoding='async';
+      image.onload=()=>{if(image.naturalWidth&&image.naturalHeight)resource.image=image;else image.onerror();};
+      image.onerror=()=>{if(index+1<sources.length)attempt(index+1);};
+      image.src=sources[index];
+    }
+    attempt(0);return resource;
+  }
+  const atlas=loadAtlas('fish-atlas'),specialAtlas=loadAtlas('special-atlas'),extraAtlas=loadAtlas('more-fish-atlas');
   const extraCrops = [[0,0,512,465],[512,0,512,480],[1024,0,512,480],[0,465,512,559],[512,480,496,544],[1008,480,528,544]];
   const names = ['海底新朋友','灵巧小猎手','珊瑚探索家','深海冒险家','海洋大玩家','海域守护者','巨浪征服者','深海巨无霸','远洋霸主','海洋之王'];
   const thresholds = [0,32,88,180,312,480,710,1010,1400,1900], sizes = [20,27,36,47,62,82,103,128,153,180];
@@ -223,11 +233,34 @@
     for(const p of popups){p.y-=35*dt;p.life-=dt;}popups=popups.filter(p=>p.life>0);
     ui();
   }
+  // Draw recognizable species while artwork is loading or unavailable, without emoji fonts.
+  function fallbackFish(index,r,extra){
+    const colors=extra?['#f88935','#ffda54','#9ebd65','#e5816c','#a6d8f0','#73a7be']:['#ffc456','#65b5ee','#ef9cab','#54d0d1','#596eac','#dc716c'];
+    const shark=index===5,puffer=extra&&index===2,angel=extra&&index===4;
+    const rx=shark?1.55:puffer?.85:1.05,ry=shark?.48:puffer?.82:angel?.95:.6;
+    const polygon=(color,points)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);for(const p of points.slice(1))ctx.lineTo(...p);ctx.closePath();ctx.fill();};
+    ctx.save();ctx.scale(r,r);
+    polygon(colors[index],[[-rx*.7,0],[-rx-0.6,-.65],[-rx-.6,.65]]);
+    if(shark)polygon(colors[index],[[0,-ry*.5],[-.2,-1.05],[.75,-ry*.4]]);
+    if(extra&&index===3){for(let i=0;i<7;i++){const x=-.9+i*.3;polygon('#f0b99a',[[x-.15,0],[x-.3,-1.1],[x+.1,-.1]]);polygon('#db8c7c',[[x-.15,0],[x-.3,1],[x+.1,.1]]);}}
+    ctx.fillStyle=colors[index];ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff3cf';ctx.beginPath();ctx.ellipse(.2,ry*.36,rx*.7,ry*.42,0,0,Math.PI*2);ctx.fill();
+    if((extra&&[0,1,3,4].includes(index))||(!extra&&index===3)){
+      ctx.save();ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);ctx.clip();ctx.strokeStyle=extra&&index===0?'#fff5df':extra&&index===3?'#9c4849':'#294e70';ctx.lineWidth=extra&&index===0?.22:.13;
+      for(const x of [-.55,0,.5]){ctx.beginPath();ctx.moveTo(x-.15,-ry);ctx.lineTo(x+.1,ry);ctx.stroke();}ctx.restore();
+    }
+    if(puffer){ctx.strokeStyle='#69813e';ctx.lineWidth=.07;for(let i=0;i<12;i++){const a=i*Math.PI/6;ctx.beginPath();ctx.moveTo(Math.cos(a)*.77,Math.sin(a)*.77);ctx.lineTo(Math.cos(a)*1.02,Math.sin(a)*1.02);ctx.stroke();}for(const x of [-.4,0,.4]){ctx.fillStyle='#687f42';ctx.beginPath();ctx.arc(x,-.22,.07,0,Math.PI*2);ctx.fill();}}
+    if(extra&&index===5){ctx.fillStyle=colors[index];ctx.fillRect(1.05,-.82,.42,1.64);}
+    if(!extra&&index===4){ctx.strokeStyle='#c5ccee';ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(.4,-ry);ctx.quadraticCurveTo(.85,-1.35,1.3,-1);ctx.stroke();ctx.fillStyle='#efffa3';ctx.beginPath();ctx.arc(1.3,-1,.14,0,Math.PI*2);ctx.fill();}
+    polygon(shark?'#517a91':'#d48359',[[-.15,.1],[-.65,.65],[.4,.3]]);
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(shark?1.17:.64,-.18,.17,0,Math.PI*2);ctx.fill();ctx.fillStyle='#182f41';ctx.beginPath();ctx.arc(shark?1.22:.69,-.18,.085,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
   function sprite(index,x,y,r,dir,phase=0,extra=false){
     ctx.save();ctx.translate(x,y);ctx.scale(dir,1);ctx.rotate(Math.sin(clock*2+phase)*.035);
-    if(extra&&extraAtlas.complete&&extraAtlas.naturalWidth){const crop=extraCrops[index];ctx.drawImage(extraAtlas,...crop,-r*1.55,-r*1.05,r*3.1,r*2.1);}
-    else if(atlas.complete&&atlas.naturalWidth){const sw=atlas.naturalWidth/3,sh=atlas.naturalHeight/2;ctx.drawImage(atlas,(index%3)*sw,Math.floor(index/3)*sh,sw,sh,-r*1.85,-r*1.23,r*3.7,r*2.46);}
-    else{ctx.font=`${r*2.4}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.scale(-1,1);ctx.fillText(index===0?'🐠':'🐟',0,0);}
+    const image=(extra?extraAtlas:atlas).image;
+    if(image){if(extra)ctx.drawImage(image,...extraCrops[index],-r*1.55,-r*1.05,r*3.1,r*2.1);else{const sw=image.naturalWidth/3,sh=image.naturalHeight/2;ctx.drawImage(image,(index%3)*sw,Math.floor(index/3)*sh,sw,sh,-r*1.85,-r*1.23,r*3.7,r*2.46);}}
+    else fallbackFish(index,r,extra);
     ctx.restore();
   }
   function draw(){
@@ -243,7 +276,7 @@
     }
     for(const f of specials){
       ctx.save();
-      if(specialAtlas.complete&&specialAtlas.naturalWidth){const sw=specialAtlas.naturalWidth/2,sh=specialAtlas.naturalHeight;ctx.save();ctx.translate(f.x,f.y);ctx.scale(f.dir*(1+Math.sin(clock*3+f.phase)*.025),1+Math.cos(clock*3+f.phase)*.025);ctx.drawImage(specialAtlas,f.sprite*sw,0,sw,sh,-f.r*1.9,-f.r*2.3,f.r*3.8,f.r*4.6);ctx.restore();}
+      if(specialAtlas.image){const image=specialAtlas.image,sw=image.naturalWidth/2,sh=image.naturalHeight;ctx.save();ctx.translate(f.x,f.y);ctx.scale(f.dir*(1+Math.sin(clock*3+f.phase)*.025),1+Math.cos(clock*3+f.phase)*.025);ctx.drawImage(image,f.sprite*sw,0,sw,sh,-f.r*1.9,-f.r*2.3,f.r*3.8,f.r*4.6);ctx.restore();}
       else{ctx.font='30px sans-serif';ctx.textAlign='center';ctx.fillText(f.sprite===0?'🪼':'✨',f.x,f.y+10);}
       ctx.shadowBlur=0;ctx.fillStyle=f.color;ctx.textAlign='center';ctx.font='600 14px "Microsoft YaHei",sans-serif';if(f.x+f.r*1.9>0&&f.x-f.r*1.9<W)ctx.fillText(f.name,clamp(f.x,60,W-60),f.y-f.r*2.4-7);ctx.restore();
     }

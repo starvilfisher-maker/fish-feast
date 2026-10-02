@@ -5,7 +5,8 @@ const elements=new Map(),events={};
 const viewport={width:1100,height:520};
 const drawCalls=[];
 const textCalls=[];
-const ctx=new Proxy({},{get:(target,key)=>key==='createLinearGradient'?()=>({addColorStop(){}}):key==='ellipse'? (...args)=>drawCalls.push({kind:'ellipse',args}):key==='fillText'? (...args)=>textCalls.push(args):Reflect.get(target,key)||(()=>{})});
+let ellipsePath=[];
+const ctx=new Proxy({},{get:(target,key)=>key==='createLinearGradient'?()=>({addColorStop(){}}):key==='beginPath'?()=>{ellipsePath=[];}:key==='ellipse'? (...args)=>ellipsePath.push({kind:'ellipse',args}):key==='stroke'?()=>drawCalls.push(...ellipsePath):key==='fillText'? (...args)=>textCalls.push(args):Reflect.get(target,key)||(()=>{})});
 function element(id){if(!elements.has(id)){const classes=new Set(),attributes=new Map();elements.set(id,{textContent:'',innerHTML:'',hidden:false,style:{setProperty(key,value){this[key]=value;},removeProperty(key){delete this[key];}},classList:{add(...items){items.forEach(x=>classes.add(x));},remove(...items){items.forEach(x=>classes.delete(x));},contains(x){return classes.has(x);},toggle(x,value=!classes.has(x)){value?classes.add(x):classes.delete(x);return value;}},setAttribute(key,value){attributes.set(key,String(value));},getAttribute(key){return attributes.get(key);},setPointerCapture(){},addEventListener(type,fn){events[id+':'+type]=fn;},getBoundingClientRect(){return {...viewport,left:0,top:0};},focus(){},getContext(){return ctx;}});}return elements.get(id);}
 const sandbox={document:{getElementById:element,querySelector:()=>element('label'),addEventListener(){}},window:{devicePixelRatio:1,addEventListener(type,fn){events[type]=fn;}},Image:class{},ResizeObserver:class{observe(){}},requestAnimationFrame(){},setTimeout(){return 0;},clearTimeout(){},console};
 sandbox.Math=Object.create(Math);

@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import {t,events,viewport} from './check-game.mjs';
+import {t,events,viewport,drawCalls} from './check-game.mjs';
 viewport.width=1100;viewport.height=520;t.resize();
 t.eat({score:9999,x:0,y:0});t.setMode('duo');t.start();t.clearFish();
 const press=key=>events.keydown({key,preventDefault(){}}),release=key=>events.keyup({key});
@@ -33,5 +32,6 @@ t.start();t.clearFish();[a,b]=pair();for(let i=0;i<3;i++){b.invulnerable=0;t.hit
 press('r');assert.equal(pair().length,2);assert.ok(pair().every(p=>p.score===0&&p.level===0&&p.lives===3&&p.shieldTime===0&&p.dashCooldown===0),'Restart resets both players');
 t.clearFish();viewport.width=350;viewport.height=470;t.resize();for(const p of pair()){p.x=-100;p.y=2000;t.confinePlayer(p);assert.ok(p.x>=t.screenRadius(p.r)*1.2&&p.y<470,'Both players fit narrow screens');}
 t.eat({score:1900,x:0,y:0},pair()[0]);t.eat({score:1900,x:0,y:0},pair()[1]);t.setMode('solo');t.start();t.clearFish();assert.equal(pair().length,1);ax=pair()[0].x;press('ArrowRight');t.update(.1);release('ArrowRight');assert.ok(pair()[0].x>ax,'Switching back to single player restores arrow controls');
-const source=fs.readFileSync('docs/game.js','utf8');assert.equal(source.split('ctx.ellipse(').length-1,1,'Only the shield ring remains');
+drawCalls.length=0;t.clearFish();t.draw();assert.equal(drawCalls.length,0,'Players without shields have no outline ring');
+t.collectPickup({kind:'shield',x:0,y:0});drawCalls.length=0;t.draw();assert.equal(drawCalls.length,1,'Only the shield ring remains');
 console.log('PASS: independent two-player controls/growth/effects, simultaneous input, one-time shared catches, 2P pickups and special creatures, predator targeting, independent win/loss, pause/restart, mobile boundaries and solo fallback.');
