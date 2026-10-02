@@ -34,14 +34,26 @@ events.keydown({key:'ArrowRight',preventDefault(){}});t.update(.05);events.keyup
 t.eat({score:1900,x:0,y:0},b);t.setMode('solo');
 
 reset();const shell=elements.get('gameShell');let requests=0,locks=0,unlocks=0;
-window.innerWidth=350;window.innerHeight=700;
+window.innerWidth=700;window.innerHeight=350;
 window.screen={orientation:{async lock(direction){assert.equal(direction,'landscape');locks++;},unlock(){unlocks++;}}};
 shell.requestFullscreen=async()=>{requests++;document.fullscreenElement=shell;events['document:fullscreenchange']();};
 document.exitFullscreen=async()=>{document.fullscreenElement=null;events['document:fullscreenchange']();};
 await events['wideScreen:click']();assert.equal(requests,1);assert.equal(locks,1);assert.ok(shell.classList.contains('is-expanded'));assert.ok(document.body.classList.contains('game-focused'));assert.equal(elements.get('wideScreen').textContent,'退出全屏');
 await events['wideScreen:click']();assert.equal(unlocks,1);assert.ok(!shell.classList.contains('is-expanded'));assert.ok(!document.body.classList.contains('game-focused'));
-shell.requestFullscreen=async()=>{throw Error('unsupported');};await events['wideScreen:click']();assert.ok(shell.classList.contains('is-expanded'),'Rejected fullscreen requests retain a playable expanded view');assert.match(elements.get('toast').textContent,/将手机横过来/);assert.equal(locks,1,'Rejected fullscreen does not attempt orientation locking');await events['wideScreen:click']();
+shell.requestFullscreen=async()=>{throw Error('unsupported');};await events['wideScreen:click']();assert.ok(shell.classList.contains('is-expanded'),'Rejected fullscreen requests retain a playable expanded view');assert.equal(locks,1,'Rejected fullscreen does not attempt orientation locking');await events['wideScreen:click']();
+window.innerWidth=350;window.innerHeight=700;await events['wideScreen:click']();assert.ok(shell.classList.contains('is-rotated'),'Portrait view rotates without device orientation support');assert.equal(shell.style.width,'700px');assert.equal(shell.style.height,'350px');await events['wideScreen:click']();assert.ok(!shell.classList.contains('is-rotated'));assert.equal(shell.style.transform,undefined);
 delete shell.requestFullscreen;await events['wideScreen:click']();assert.ok(shell.classList.contains('is-expanded'),'Browsers without the Fullscreen API still get the expanded view');await events['wideScreen:click']();
+
+// An arbitrary 30-degree stick direction, proportional speed and independent dash finger.
+elements.get('joystick').getBoundingClientRect=()=>({left:0,top:0,width:110,height:110});
+const stick=(id,x,y)=>({pointerId:id,button:0,clientX:x,clientY:y,preventDefault(){}});
+p=reset();x=p.x;y=p.y;events['joystick:pointerdown'](stick(80,85.48,72.6));t.update(.1);
+assert.ok(Math.abs((p.y-y)/(p.x-x)-Math.tan(Math.PI/6))<.01,'Joystick supports angles beyond cardinal and diagonal directions');
+assert.ok(Math.abs(Math.hypot(p.x-x,p.y-y)-23)<.05,'Full stick displacement uses normal movement speed');
+down('touchDash',81);assert.equal(p.dashCooldown,6);events['joystick:pointercancel'](stick(80,85.48,72.6));p.dashTime=0;x=p.x;y=p.y;t.update(.1);assert.deepEqual([p.x,p.y],[x,y]);
+p=reset();events['joystick:pointerdown'](stick(82,72.6,55));x=p.x;t.update(.1);assert.ok(Math.abs(p.x-x-11.5)<.01,'Half stick displacement uses half speed');events['controlSwitch:click']();x=p.x;t.update(.1);assert.equal(p.x,x,'Switching controls clears held stick input');assert.equal(elements.get('directionPad').hidden,false);events['controlSwitch:click']();assert.equal(elements.get('joystick').hidden,false);
+// In the portrait fallback, screen-down is game-right after the 90-degree rotation.
+p=reset();await events['wideScreen:click']();x=p.x;y=p.y;events['joystick:pointerdown'](stick(83,55,90.2));t.update(.1);assert.ok(p.x>x);assert.equal(p.y,y);events['joystick:pointerup'](stick(83,55,90.2));await events['wideScreen:click']();
 
 for(const [width,height] of [[320,260],[390,420],[600,240],[667,220]]){
   viewport.width=width;viewport.height=height;t.resize();t.start();t.clearFish();t.eat({score:1890,x:0,y:0});t.draw();

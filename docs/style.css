@@ -8,7 +8,13 @@
 
 /* v1.2: thumb controls stay outside the ocean, with a landscape game layout. */
 .mobile-controls{display:none;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:#edf7f7;border-top:1px solid #dcebed;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+.steering-control{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none}
 .d-pad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px;flex:none}
+.d-pad[hidden],.joystick[hidden]{display:none}
+.joystick{position:relative;width:110px;height:110px;border:2px solid #b4d8dd;border-radius:50%;background:radial-gradient(circle,#eefaf8 20%,#d9eeed 68%,#edf8f7 70%);touch-action:none;padding:0;overflow:hidden}
+.joystick-rim{position:absolute;inset:0;display:grid;place-items:center;font-size:84px;color:#a1c8ca;opacity:.6;pointer-events:none}
+.joystick-knob{position:absolute;width:46px;height:46px;left:calc(50% - 23px);top:calc(50% - 23px);display:grid;place-items:center;border:1px solid #7ec0bb;border-radius:50%;background:white;box-shadow:0 3px 8px #31777722;font-size:24px;pointer-events:none}
+.control-switch{min-height:44px;padding:8px 12px;border:1px solid #b6d6db;border-radius:10px;background:white;color:#3e7486;font-size:12px;font-weight:700}
 .direction-button{min-width:44px;min-height:44px;border:1px solid #b6d6db;border-radius:12px;background:white;color:#28677b;font-size:27px;font-weight:700;touch-action:none}
 .direction-button[aria-pressed="true"]{background:#b4e8df;border-color:#319e91;transform:scale(.96)}
 .up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.right{grid-column:3;grid-row:2}.down{grid-column:2;grid-row:3}
@@ -66,7 +72,7 @@ body.game-focused{overflow:hidden}
   .tools{border:0;padding:0;margin:0;gap:4px}.toolbar .icon-button{min-width:38px;min-height:38px;width:38px;height:38px}
   .playfield,.is-expanded .playfield,.game-shell:fullscreen .playfield{grid-column:2;grid-row:2;height:auto;min-height:0;border-radius:10px}
   .mobile-controls,.is-expanded .mobile-controls,.game-shell:fullscreen .mobile-controls{display:contents}
-  .d-pad{grid-column:1;grid-row:2;align-self:center;justify-self:center}.mobile-actions{grid-column:3;grid-row:2;align-self:center;justify-self:center}
+  .steering-control{grid-column:1;grid-row:2;align-self:center;justify-self:center}.mobile-actions{grid-column:3;grid-row:2;align-self:center;justify-self:center}
   .mobile-hint{display:none}.touch-dash{width:78px;height:78px}.wide-screen{min-width:92px}
   .adventure-bar{grid-column:1/-1;grid-row:3;min-height:28px;height:28px;flex-wrap:nowrap;padding:3px 10px;font-size:11px;border:0}
   .event-chip{padding:2px 7px;font-size:10px;min-height:20px;line-height:16px}.combo-status{display:block;order:0;flex-basis:auto;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.status-effects{font-size:10px}
@@ -86,3 +92,54 @@ body.game-focused{overflow:hidden}
   .start-card{padding:8px 12px;margin:4px 0}.start-card h1{font-size:18px;margin:0 0 5px}
   .mode-picker{margin:4px 0;padding:3px}
 }
+
+/* Explicit landscape view works even when device rotation is locked. */
+.is-rotated,.is-rotated.is-expanded,.is-rotated:fullscreen{display:grid;grid-template-columns:148px minmax(0,1fr) 104px;grid-template-rows:44px minmax(0,1fr) 28px 24px;height:calc(100svh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:220px;padding:0;border-radius:12px;gap:0}
+.is-rotated.is-expanded,.is-rotated:fullscreen{height:100dvh;min-height:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);border-radius:0}
+.is-rotated[data-mode="duo"]{grid-template-rows:44px minmax(0,1fr) 28px 28px 20px 20px}
+.is-rotated .toolbar{grid-column:1/-1;grid-row:1;flex-wrap:nowrap;gap:10px;padding:3px 10px;min-height:0;height:44px}
+.is-rotated .level-block{flex:0 1 auto;min-width:0;gap:7px}
+.is-rotated .level-badge{width:30px;height:30px;font-size:17px}
+.is-rotated .level-block strong{font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.is-rotated .level-caption{display:none}
+.is-rotated .stats{order:0;flex-basis:auto;flex-wrap:nowrap;gap:12px;margin-left:auto;padding:0;border:0;min-width:0}
+.is-rotated .stats>div{display:flex;align-items:center;gap:5px}
+.is-rotated .stats strong{font-size:15px}
+.is-rotated .stats .life-stat strong{font-size:15px}
+.is-rotated .stat-label{font-size:10px;margin:0;white-space:nowrap}
+.is-rotated .tools{border:0;padding:0;margin:0;gap:4px}
+.is-rotated .toolbar .icon-button{min-width:38px;min-height:38px;width:38px;height:38px}
+.is-rotated .playfield,.is-rotated .playfield,.is-rotated:fullscreen .playfield{grid-column:2;grid-row:2;height:auto;min-height:0;border-radius:10px}
+.is-rotated .mobile-controls,.is-rotated .mobile-controls,.is-rotated:fullscreen .mobile-controls{display:contents}
+.is-rotated .steering-control{grid-column:1;grid-row:2;align-self:center;justify-self:center}
+.is-rotated .mobile-actions{grid-column:3;grid-row:2;align-self:center;justify-self:center}
+.is-rotated .mobile-hint{display:none}
+.is-rotated .touch-dash{width:78px;height:78px}
+.is-rotated .wide-screen{min-width:92px}
+.is-rotated .adventure-bar{grid-column:1/-1;grid-row:3;min-height:28px;height:28px;flex-wrap:nowrap;padding:3px 10px;font-size:11px;border:0}
+.is-rotated .event-chip{padding:2px 7px;font-size:10px;min-height:20px;line-height:16px}
+.is-rotated .combo-status{display:block;order:0;flex-basis:auto;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.is-rotated .status-effects{font-size:10px}
+.is-rotated .growth-row{grid-column:1/-1;grid-row:4;flex-wrap:nowrap;padding:3px 12px;font-size:10px;gap:8px}
+.is-rotated .growth-row strong{font-size:10px;white-space:nowrap;min-width:60px}
+.is-rotated .growth-track{max-width:none}
+.is-rotated[data-mode="duo"]>.growth-row:not(.partner-growth){grid-row:5}
+.is-rotated .partner-growth{grid-row:6}
+.is-rotated .partner-panel{grid-column:1/-1;grid-row:4;padding:4px 12px;gap:8px;flex-wrap:nowrap;overflow:hidden;font-size:10px}
+.is-rotated .partner-panel>strong{font-size:10px;white-space:nowrap}
+.is-rotated .partner-combo,.is-rotated .partner-panel #dash2{display:none}
+.is-rotated .special-guide,.is-rotated .field-hint{display:none}
+.is-rotated .ocean-label{top:9px;left:12px;font-size:10px;letter-spacing:0}
+.is-rotated .touch-pause{right:8px;top:8px}
+.is-rotated .toast{top:52px;font-size:11px;padding:7px 10px}
+.is-rotated .start-card{width:min(360px,calc(100% - 20px));max-width:calc(100% - 20px);padding:10px 18px;margin:8px 0;border-radius:16px}
+.is-rotated .start-card h1{font-size:20px;line-height:1.2;margin:4px 0 7px}
+.is-rotated .start-card p{font-size:11px;line-height:1.45;margin-bottom:6px}
+.is-rotated .start-card .eyebrow,.is-rotated .start-note{display:none}
+.is-rotated .mode-picker{margin:7px 0 5px;padding:4px}
+.is-rotated .mode-picker button{font-size:12px;min-height:40px;padding:7px 4px}
+.is-rotated .start-card .mode-help{font-size:10px;line-height:1.4;margin-bottom:7px;min-height:0}
+.is-rotated .primary{min-height:40px;font-size:13px;padding:9px 14px}
+.is-rotated{inset:auto!important;left:50%!important;top:50%!important;width:var(--wide-width)!important;height:var(--wide-height)!important;transform:translate(-50%,-50%) rotate(90deg)!important;transform-origin:center;padding:0!important;border:0;border-radius:0}
+@media(max-width:360px){.is-rotated[data-state="ready"] #overlayText,.is-rotated[data-state="ready"] #modeHelp{display:none}.is-rotated .start-card{padding:8px 12px;margin:4px 0}.is-rotated .start-card h1{font-size:18px;margin:0 0 5px}.is-rotated .mode-picker{margin:4px 0;padding:3px}}
+.guide{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.guide-intro,.guide-item:first-of-type{grid-column:1/-1}.guide>.guide-item:nth-child(2){grid-column:1/-1}.guide>.guide-item:nth-child(3){grid-column:1}.guide>.guide-item:nth-child(4){grid-column:2}.guide-item{min-width:0}.guide>.guide-item:last-child{grid-column:2}

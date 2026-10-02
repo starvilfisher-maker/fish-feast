@@ -2,6 +2,7 @@
 (() => {
   const $ = id => document.getElementById(id);
   const canvas = $('ocean'), ctx = canvas.getContext('2d'), gameShell=$('gameShell');
+  const fullscreenTarget=document.documentElement||gameShell;
   const atlas = new Image(); atlas.src = 'fish-atlas.png';
   const specialAtlas = new Image(); specialAtlas.src = 'special-atlas.png';
   const extraAtlas = new Image(); extraAtlas.src = 'more-fish-atlas.png';
@@ -37,6 +38,8 @@
   let fish=[],particles=[],popups=[],spawnClock=0,keys=new Set(),touchDirections=new Map();
   const directionButtons=[['touchUp','w'],['touchLeft','a'],['touchDown','s'],['touchRight','d']];
   let expanded=false,fullscreenBusy=false,orientationLocked=false;
+  let rotated=false,joystickPointer=null,joystickVector={x:0,y:0},controlMode='joystick';
+  try{if(window.localStorage?.getItem('fish-feast-control')==='buttons')controlMode='buttons';}catch{}
   let specials=[],specialClock=0,nextSpecial=25;
   let pickups=[],pickupClock=0,nextPickup=18;
   let sizeScale=1;
@@ -53,17 +56,18 @@
   const canEat=(f,p=player)=>!inflated(f)&&fishRadius(f)<=p.r*.9;
   const dangerous=(f,p=player)=>inflated(f)||fishRadius(f)>p.r*1.08;
   function confinePlayer(p=player){const r=screenRadius(p.r);p.x=clamp(p.x,r*1.2,W-r*1.2);p.y=clamp(p.y,r*.8+10,H-r*.8-8);}
-  function clearTouch(){touchDirections.clear();for(const [id] of directionButtons)$(id).setAttribute('aria-pressed','false');}
+  function clearJoystick(){joystickPointer=null;joystickVector={x:0,y:0};$('joystickKnob').style.transform='translate(0px,0px)';}
+  function clearTouch(){touchDirections.clear();clearJoystick();for(const [id] of directionButtons)$(id).setAttribute('aria-pressed','false');}
   function clearInput(){keys.clear();clearTouch();dragging=false;players.forEach(p=>p.pointer=null);}
-  function resize(){const box=canvas.getBoundingClientRect();const oldW=W,oldH=H;W=Math.max(1,box.width);H=Math.max(1,box.height);if(W!==oldW||H!==oldH)clearInput();sizeScale=Math.max(.01,Math.min(1,(W-24)/(sizes[MAX_LEVEL]*2.8),(H-40)/(sizes[MAX_LEVEL]*2.3)));const dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);players.forEach(p=>{p.x=p.x/oldW*W;p.y=p.y/oldH*H;p.pointer=null;confinePlayer(p);});fish.forEach(f=>{f.x=f.x/oldW*W;f.y=f.y/oldH*H;f.baseY=f.baseY/oldH*H;});specials.forEach(f=>{f.x=f.x/oldW*W;f.y=f.y/oldH*H;f.baseY=f.baseY/oldH*H;});pickups.forEach(p=>{p.x=p.x/oldW*W;p.y=p.y/oldH*H;p.baseY=p.baseY/oldH*H;});}
+  function resize(){const box=canvas.getBoundingClientRect();const oldW=W,oldH=H;W=Math.max(1,rotated?box.height:box.width);H=Math.max(1,rotated?box.width:box.height);if(W!==oldW||H!==oldH)clearInput();sizeScale=Math.max(.01,Math.min(1,(W-24)/(sizes[MAX_LEVEL]*2.8),(H-40)/(sizes[MAX_LEVEL]*2.3)));const dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);players.forEach(p=>{p.x=p.x/oldW*W;p.y=p.y/oldH*H;p.pointer=null;confinePlayer(p);});fish.forEach(f=>{f.x=f.x/oldW*W;f.y=f.y/oldH*H;f.baseY=f.baseY/oldH*H;});specials.forEach(f=>{f.x=f.x/oldW*W;f.y=f.y/oldH*H;f.baseY=f.baseY/oldH*H;});pickups.forEach(p=>{p.x=p.x/oldW*W;p.y=p.y/oldH*H;p.baseY=p.baseY/oldH*H;});}
   new ResizeObserver(resize).observe(canvas);
   function spawn(initial=false,forced=null){
-    const giantCount=fish.filter(f=>f.r>=100).length;
+    const giantCount=fish.filter(f=>f.r>=100).length,largeCount=fish.filter(f=>f.r>=55).length;
     // Fixed size groups keep the ocean independent of either player's growth.
     const rush=seaEvent()?.kind==='rush',roll=Math.random();
-    const small=roll<(rush?.18:.30),medium=roll<(rush?.43:.60),large=roll<(rush?.86:.90);
-    const giantLimit=W<580?1:2;
-    const pool=species.filter(s=>small?s.r<=18:medium?s.r>18&&s.r<55:large||giantCount>=giantLimit?s.r>=55&&s.r<100:s.r>=100);
+    const small=roll<(rush?.35:.45),medium=roll<(rush?.65:.80),large=roll<(rush?.94:.96);
+    const largeLimit=(W<650?1:2)+(rush?1:0);
+    const pool=species.filter(s=>small?s.r<=18:medium||largeCount>=largeLimit?s.r>18&&s.r<55:large||giantCount>=1?s.r>=55&&s.r<100:s.r>=100);
     const s=forced||pool[Math.floor(rand(0,pool.length))],dir=Math.random()<.5?1:-1,fr=screenRadius(s.r);
     let x=initial?rand(30,W-30):(dir===1?-fr*3:W+fr*3),y=rand(fr*.82+38,H-fr*.82-20);
     if(initial&&players.some(p=>Math.hypot(x-p.x,y-p.y)<fr+screenRadius(p.r)+100)){x=dir===1?-fr*3:W+fr*3;}
@@ -72,8 +76,8 @@
   function populate(){
     fish=[];
     for(const s of species.filter(s=>s.r<=18))spawn(true,s);
-    for(const r of [24,38,55,90,110])spawn(true,species.find(s=>s.r===r));
-    while(fish.length<16)spawn(true);
+    for(const r of [24,28,38,55])spawn(true,species.find(s=>s.r===r));
+    while(fish.length<12)spawn(true);
   }
   function spawnSpecial(typeIndex=Math.random()<.75?0:1){
     const type=specialTypes[typeIndex],dir=Math.random()<.5?1:-1,x=dir===1?-60:W+60,y=rand(75,H-65);
@@ -83,23 +87,12 @@
   }
   function moveSpecial(f,dt){
     f.x+=f.dir*f.speed*(seaEvent()?.kind==='current'?1.2:1)*dt;
-    f.y=clamp(f.baseY+Math.sin(clock*1.6+f.phase)*f.wobble,60,H-48);
+    f.y=f.baseY;
   }
   function moveFish(f,dt){
-    const active=state==='playing',fr=screenRadius(fishRadius(f));
-    const target=activePlayers().filter(p=>dangerous(f,p)).sort((a,b)=>Math.hypot(f.x-a.x,f.y-a.y)-Math.hypot(f.x-b.x,f.y-b.y))[0];
-    const preyTarget=activePlayers().filter(p=>canEat(f,p)).sort((a,b)=>Math.hypot(f.x-a.x,f.y-a.y)-Math.hypot(f.x-b.x,f.y-b.y))[0];
+    const active=state==='playing';
     let speed=f.speed*(active?1+pressure()*.32:1)*(seaEvent()?.kind==='current'?1.2:1);
-    const hunter=active&&/鲨|灯笼/.test(f.name||'')&&!!target;
-    if(hunter){
-      if(f.x>-fr&&f.x<W+fr&&f.dir*(target.x-f.x)>0&&Math.abs(f.x-target.x)<180+screenRadius(f.r+target.r)*1.6){
-        f.baseY+=clamp(target.y-f.baseY,-48*dt,48*dt);
-      }
-    }else if(active&&preyTarget&&Math.hypot(f.x-preyTarget.x,f.y-preyTarget.y)<110+screenRadius(preyTarget.r)){
-      speed*=1.15;f.baseY+=(f.y>=preyTarget.y?1:-1)*42*dt;
-    }
-    f.baseY=clamp(f.baseY,fr*.75+38,H-fr*.75-18);
-    f.x+=f.dir*speed*dt;f.y=f.baseY+Math.sin(clock*1.5+f.phase)*f.wobble;
+    f.x+=f.dir*speed*dt;f.y=f.baseY;
   }
   function dash(p=player){if(state!=='playing'||p.outcome!=='playing'||p.dashCooldown>0)return false;p.dashTime=.7;p.dashCooldown=6;tone(420,.12);return true;}
   function spawnPickup(){
@@ -144,6 +137,12 @@
     $('modePicker').hidden=state==='paused';$('modeHelp').hidden=state==='paused';
     const mobile=window.matchMedia?.('(pointer: coarse), (max-width: 850px), (max-width: 1200px) and (max-height: 600px) and (orientation: landscape)')?.matches??W<580;
     gameShell.setAttribute('data-mode',mode);gameShell.setAttribute('data-state',state);
+    gameShell.setAttribute('data-controls',controlMode);
+    $('directionPad').hidden=controlMode!=='buttons';$('joystick').hidden=controlMode!=='joystick';
+    $('joystick').disabled=state!=='playing'||player.outcome!=='playing';
+    $('controlSwitch').textContent=controlMode==='joystick'?'切换方向键':'切换圆盘';
+    $('controlSwitch').setAttribute('aria-pressed',String(controlMode==='buttons'));
+    $('mobileHint').innerHTML=controlMode==='joystick'?'圆盘可向任意角度游动<br>可同时按冲刺':'按住方向按钮游动<br>可同时按冲刺';
     $('fieldHint').hidden=state!=='playing';$('touchPause').hidden=!mobile||state!=='playing';
     for(const [id] of directionButtons)$(id).disabled=state!=='playing'||player.outcome!=='playing';
     $('touchDash').disabled=$('dash').disabled;
@@ -201,7 +200,8 @@
       const held=key=>keys.has(key)||(p.id===1&&Array.from(touchDirections.values()).includes(key));
       const keyX=(arrows&&held('arrowright')||letters&&held('d')?1:0)-(arrows&&held('arrowleft')||letters&&held('a')?1:0),keyY=(arrows&&held('arrowdown')||letters&&held('s')?1:0)-(arrows&&held('arrowup')||letters&&held('w')?1:0);
       const moveSpeed=(230+p.level*8)*(p.dashTime>0?1.8:1)*(p.slowTime>0?.55:1);
-      if(keyX||keyY){const n=Math.hypot(keyX,keyY);p.x+=keyX/n*moveSpeed*dt;p.y+=keyY/n*moveSpeed*dt;p.pointer=null;if(keyX)p.dir=keyX>0?1:-1;}
+      if(p.id===1&&Math.hypot(joystickVector.x,joystickVector.y)>0){p.x+=joystickVector.x*moveSpeed*dt;p.y+=joystickVector.y*moveSpeed*dt;p.pointer=null;if(Math.abs(joystickVector.x)>.05)p.dir=joystickVector.x>0?1:-1;}
+      else if(keyX||keyY){const n=Math.hypot(keyX,keyY);p.x+=keyX/n*moveSpeed*dt;p.y+=keyY/n*moveSpeed*dt;p.pointer=null;if(keyX)p.dir=keyX>0?1:-1;}
       else if(p.pointer){const dist=Math.hypot(p.pointer.x-p.x,p.pointer.y-p.y);if(dist>3){const step=Math.min(dist,moveSpeed*dt);const dx=(p.pointer.x-p.x)/dist;p.x+=dx*step;p.y+=(p.pointer.y-p.y)/dist*step;if(Math.abs(dx)>.05)p.dir=dx>0?1:-1;}}
       else if(p.dashTime>0)p.x+=p.dir*moveSpeed*dt;
       const event=seaEvent();if(event?.kind==='current')p.x+=(W<580?26:45)*event.dir*dt;
@@ -265,22 +265,33 @@
     expanded=value;gameShell.classList.toggle('is-expanded',value);
     document.body?.classList.toggle('game-focused',value);
     $('wideScreen').textContent=value?'退出全屏':'横屏游玩';
-    clearInput();resize();
+    updateWideLayout();clearInput();resize();
+  }
+  function updateWideLayout(){
+    rotated=expanded&&window.innerHeight>window.innerWidth;
+    gameShell.classList.toggle('is-rotated',rotated);
+    gameShell.style.setProperty('--wide-width',window.innerHeight+'px');
+    gameShell.style.setProperty('--wide-height',window.innerWidth+'px');
+    for(const [property,value] of Object.entries({width:window.innerHeight+'px',height:window.innerWidth+'px',transform:'translate(-50%,-50%) rotate(90deg)',inset:'auto',left:'50%',top:'50%'})){
+      if(rotated)gameShell.style.setProperty(property,value,'important');else gameShell.style.removeProperty(property);
+    }
   }
   function unlockOrientation(){if(orientationLocked){try{window.screen?.orientation?.unlock?.();}catch{}orientationLocked=false;}}
   async function toggleWideScreen(){
     if(fullscreenBusy)return;fullscreenBusy=true;$('wideScreen').disabled=true;
     try{
       if(expanded){
-        if(document.fullscreenElement===gameShell&&document.exitFullscreen){try{await document.exitFullscreen();}catch{}}
+        if(document.fullscreenElement&&document.exitFullscreen){try{await document.exitFullscreen();}catch{}}
         unlockOrientation();setExpanded(false);
       }else{
         setExpanded(true);
-        try{await gameShell.requestFullscreen?.();}catch{}
-        if(document.fullscreenElement===gameShell&&window.screen?.orientation?.lock){
-          try{await window.screen.orientation.lock('landscape');orientationLocked=true;}catch{}
+        if(window.innerWidth>=window.innerHeight){
+          try{await fullscreenTarget.requestFullscreen?.();}catch{}
+          if(document.fullscreenElement&&window.screen?.orientation?.lock){
+            try{await window.screen.orientation.lock('landscape');orientationLocked=true;}catch{}
+          }
         }
-        if(!orientationLocked&&window.innerHeight>window.innerWidth)toast('将手机横过来，即可横屏游玩');
+        updateWideLayout();
       }
     }finally{fullscreenBusy=false;$('wideScreen').disabled=false;resize();ui();}
   }
@@ -299,16 +310,29 @@
     button.addEventListener('blur',()=>release({}));
   }
   const mobileDash=()=>{dash(player);ui();};
+  $('controlSwitch').addEventListener('click',()=>{clearInput();controlMode=controlMode==='joystick'?'buttons':'joystick';try{window.localStorage?.setItem('fish-feast-control',controlMode);}catch{}ui();});
+  function moveJoystick(e){
+    const box=$('joystick').getBoundingClientRect();let dx=e.clientX-box.left-box.width/2,dy=e.clientY-box.top-box.height/2;
+    if(rotated)[dx,dy]=[dy,-dx];
+    const radius=Math.min(box.width,box.height)*.32,distance=Math.hypot(dx,dy),magnitude=Math.min(1,distance/radius);
+    joystickVector=distance<6?{x:0,y:0}:{x:dx/distance*magnitude,y:dy/distance*magnitude};
+    $('joystickKnob').style.transform=`translate(${joystickVector.x*radius}px,${joystickVector.y*radius}px)`;
+  }
+  $('joystick').addEventListener('pointerdown',e=>{if(state!=='playing'||player.outcome!=='playing'||joystickPointer!==null||e.button>0)return;e.preventDefault();clearTouch();joystickPointer=e.pointerId;player.pointer=null;dragging=false;$('joystick').setPointerCapture(e.pointerId);moveJoystick(e);});
+  $('joystick').addEventListener('pointermove',e=>{if(e.pointerId===joystickPointer){e.preventDefault();moveJoystick(e);}});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])$('joystick').addEventListener(event,e=>{if(e.pointerId===joystickPointer)clearJoystick();});
+  $('joystick').addEventListener('contextmenu',e=>e.preventDefault());
   $('touchDash').addEventListener('pointerdown',e=>{if(e.button>0)return;e.preventDefault();mobileDash();});
   $('touchDash').addEventListener('click',e=>{if(!e.detail)mobileDash();});
   $('wideScreen').addEventListener('click',toggleWideScreen);
-  document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement){unlockOrientation();setExpanded(false);}clearInput();resize();ui();});
-  window.addEventListener('orientationchange',()=>{clearInput();resize();ui();});
+  document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&!fullscreenBusy){unlockOrientation();setExpanded(false);}clearInput();resize();ui();});
+  window.addEventListener('orientationchange',()=>{updateWideLayout();clearInput();resize();ui();});
+  window.addEventListener('resize',()=>{updateWideLayout();clearInput();resize();ui();});
   $('start').addEventListener('click',()=>state==='paused'?pause():start());$('pause').addEventListener('click',pause);$('touchPause').addEventListener('click',pause);$('dash').addEventListener('click',()=>{dash();canvas.focus({preventScroll:true});ui();});
   $('soloMode').addEventListener('click',()=>setMode('solo'));$('duoMode').addEventListener('click',()=>setMode('duo'));
   $('dash2').addEventListener('click',()=>{if(players[1])dash(players[1]);canvas.focus({preventScroll:true});ui();});
   $('sound').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('sound').innerHTML=soundEnabled?'♫':'♫<span class="off-mark">/</span>';$('sound').setAttribute('aria-label',soundEnabled?'关闭音效':'开启音效');$('sound').title=soundEnabled?'关闭音效':'开启音效';tone(660);});
-  function point(e){const b=canvas.getBoundingClientRect();return {x:e.clientX-b.left,y:e.clientY-b.top};}
+  function point(e){const b=canvas.getBoundingClientRect();return rotated?{x:e.clientY-b.top,y:b.right-e.clientX}:{x:e.clientX-b.left,y:e.clientY-b.top};}
   canvas.addEventListener('pointermove',e=>{if(state==='playing'&&player.outcome==='playing'&&(e.pointerType==='mouse'||dragging))player.pointer=point(e);});
   canvas.addEventListener('pointerdown',e=>{if(state==='playing'&&player.outcome==='playing'){clearTouch();dragging=true;player.pointer=point(e);canvas.setPointerCapture(e.pointerId);}});
   canvas.addEventListener('pointerup',e=>{dragging=false;if(e.pointerType!=='mouse')player.pointer=null;});canvas.addEventListener('pointercancel',()=>{dragging=false;player.pointer=null;});canvas.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')player.pointer=null;});
